@@ -1,0 +1,22 @@
+DEFINITION MODULE DumpLoad;
+
+        (********************************************************)
+        (*                                                      *)
+        (*          Generic dump from INI to TNI format         *)
+        (*                                                      *)
+        (*  Programmer:         P. Moylan                       *)
+        (*  Started:            9 November 2008                 *)
+        (*  Last edited:        20 February 2009                *)
+        (*  Status:             OK                              *)
+        (*                                                      *)
+        (********************************************************)
+
+
+PROCEDURE TransferINIData (ProgramName: ARRAY OF CHAR;
+                          VAR (*IN*) file: ARRAY OF CHAR;  dump: BOOLEAN);
+
+    (* Dumps file.INI to AppName.TNI if dump=TRUE, or conversely  *)
+    (* if dump=FALSE.                                             *)
+
+END DumpLoad.
+
