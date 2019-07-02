@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  PMOS/2 software library                                               *)
-(*  Copyright (C) 2014   Peter Moylan                                     *)
+(*  Copyright (C) 2018   Peter Moylan                                     *)
 (*                                                                        *)
 (*  This program is free software: you can redistribute it and/or modify  *)
 (*  it under the terms of the GNU General Public License as published by  *)
@@ -32,7 +32,7 @@ IMPLEMENTATION MODULE FileOps;
         (*                                                      *)
         (*  Programmer:         P. Moylan                       *)
         (*  Started:            17 October 2001                 *)
-        (*  Last edited:        22 January 2014                 *)
+        (*  Last edited:        26 January 2018                 *)
         (*  Status:             Working                         *)
         (*                                                      *)
         (*    The original version of this module used          *)
@@ -51,8 +51,8 @@ FROM SYSTEM IMPORT
     (* type *)  LOC, INT32,
     (* proc *)  ADR, CAST;
 
-FROM Types IMPORT
-    (* type *)  CARD64;
+FROM Arith64 IMPORT
+    (* type *)  CARD64, CARD64API;
 
 FROM Conversions IMPORT
     (* proc *)  CardinalToString, Card64ToString;
@@ -263,7 +263,7 @@ PROCEDURE OpenNewFile0 (name: ARRAY OF CHAR;  Attributes: CARDINAL;
                                        Mode, NIL);
         END (*IF*);
         duplicate := (rc = OS2.ERROR_FILE_EXISTS)
-                       OR (rc =OS2.ERROR_OPEN_FAILED);
+                       OR (rc = OS2.ERROR_OPEN_FAILED);
         IF rc <> 0 THEN
             cid := NoSuchChannel;
         END (*IF*);
@@ -423,19 +423,6 @@ PROCEDURE HideFileL (name: ARRAY OF CHAR;  HideIt: BOOLEAN);
 
 (************************************************************************)
 
-(*
-PROCEDURE NameOf (f: ChanId): FilenameString;
-
-    (* Returns the name of the file. *)
-    (* Question: is this procedure used anywhere? *)
-
-    BEGIN
-        RETURN f.name;
-    END NameOf;
-*)
-
-(************************************************************************)
-
 PROCEDURE Exists (name: ARRAY OF CHAR): BOOLEAN;
 
     (* Returns TRUE iff 'name' already exists. *)
@@ -478,6 +465,22 @@ PROCEDURE DeleteFile (name: ARRAY OF CHAR);
     BEGIN
         FileSys.Remove (name, dummy);
     END DeleteFile;
+
+(************************************************************************)
+
+PROCEDURE CreateFile (name: ARRAY OF CHAR);
+
+    (* Creates an empty file.  Deletes any existing file with the same name. *)
+
+    VAR cid: ChanId;
+
+    BEGIN
+        IF Exists (name) THEN
+            DeleteFile (name);
+        END (*IF*);
+        cid := OpenNewFile (name, TRUE);
+        CloseFile (cid);
+    END CreateFile;
 
 (************************************************************************)
 
@@ -547,7 +550,7 @@ PROCEDURE StartPosition (cid: ChanId):  FilePos;
     (* Returns the start-of-file position. *)
 
     BEGIN
-        RETURN CARD64{0,0};
+        RETURN CARD64API{0,0};
     END StartPosition;
 
 (************************************************************************)
@@ -928,12 +931,13 @@ PROCEDURE ConvertFindResultL (VAR (*IN*) FindBuffer: OS2A.FILEFINDBUF3L;
     (* Copies the result of a directory lookup to the format we're using. *)
 
     BEGIN
-        D.attr    := CAST (FileAttr, FindBuffer.attrFile);
-        D.timePkd := FindBuffer.ftimeLastWrite;
-        D.datePkd := FindBuffer.fdateLastWrite;
-        D.timeCre := FindBuffer.ftimeCreation;
-        D.dateCre := FindBuffer.fdateCreation;
-        D.size    := FindBuffer.cbFile;
+        D.attr      := CAST (FileAttr, FindBuffer.attrFile);
+        D.timePkd   := FindBuffer.ftimeLastWrite;
+        D.datePkd   := FindBuffer.fdateLastWrite;
+        D.timeCre   := FindBuffer.ftimeCreation;
+        D.dateCre   := FindBuffer.fdateCreation;
+        D.size.high := FindBuffer.cbFile.high;
+        D.size.low  := FindBuffer.cbFile.low;
         Strings.Assign (FindBuffer.achName, D.name);
     END ConvertFindResultL;
 
@@ -1265,6 +1269,5 @@ PROCEDURE SetWorkingDirectory;
 BEGIN
     OS2.DosError (OS2.FERR_DISABLEHARDERR); (* disable hard error popups *)
     CheckSystemVersion;
-    (*OS2.DosSetMaxFH (500);*)      (* Call removed -- obsolete *)
 END FileOps.
 

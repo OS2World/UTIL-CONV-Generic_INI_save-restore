@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  Support modules for network applications                              *)
-(*  Copyright (C) 2014   Peter Moylan                                     *)
+(*  Copyright (C) 2018   Peter Moylan                                     *)
 (*                                                                        *)
 (*  This program is free software: you can redistribute it and/or modify  *)
 (*  it under the terms of the GNU General Public License as published by  *)
@@ -27,7 +27,7 @@ IMPLEMENTATION MODULE INIData;
         (*               Looking after our INI file data            *)
         (*                                                          *)
         (*    Started:        30 March 2000                         *)
-        (*    Last edited:    9 June 2013                           *)
+        (*    Last edited:    21 November 2018                      *)
         (*    Status:         OK                                    *)
         (*                                                          *)
         (************************************************************)
@@ -40,7 +40,7 @@ FROM SYSTEM IMPORT
     (* proc *)  ADR, CAST;
 
 FROM FileOps IMPORT
-    (* proc *)  Exists;
+    (* proc *)  Exists, CreateFile;
 
 FROM Heap IMPORT
     (* proc *)  ALLOCATE, DEALLOCATE;
@@ -81,6 +81,121 @@ VAR
     (* ProgramDir is the directory from which this program is running.  *)
 
     ProgramDir: FilenameString;
+
+(************************************************************************)
+(*          DECIDING WHETHER TO SET INI OR TNI AS DEFAULT CHOICE        *)
+(************************************************************************)
+
+PROCEDURE ChooseDefaultINI (appname: ARRAY OF CHAR;
+                                   VAR (*OUT*) useTNI: BOOLEAN): BOOLEAN;
+
+    (* Returns useTNI=TRUE if we should default to using appname.TNI to *)
+    (* hold this application's data, useTNI=FALSE if the default should *)
+    (* be to use appname.INI.  The decision is based on factors like    *)
+    (* which file exists.  Of course the caller might in some cases     *)
+    (* override this decision; all we are supplying is an initial       *)
+    (* default.  The function result is FALSE if we are unable to make  *)
+    (* a decision, i.e. either choice is equally good, and in that case *)
+    (* the returned useTNI value should be ignored.                     *)
+
+    VAR hini: HINI;  useINI, useTNI0, foundI, foundT: BOOLEAN;
+        app: ARRAY [0..5] OF CHAR;
+        Iname, Tname: FilenameString;
+
+    BEGIN
+        Strings.Assign (appname, Iname);
+        Strings.Assign (appname, Tname);
+        Strings.Append (".INI", Iname);
+        Strings.Append (".TNI", Tname);
+        useINI := Exists(Iname);
+        useTNI := Exists(Tname);
+
+        (* If only one of the files exists, the decision is obvious.    *)
+        (* If neither exists, default to using INI.                     *)
+
+        IF NOT (useINI AND useTNI) THEN
+            RETURN TRUE;
+        END (*IF*);
+
+        (* That leaves the case where both files exist.  In that case   *)
+        (* we look up the entry ($SYS, useTNI) in each file.            *)
+
+        useTNI := FALSE;  useTNI0 := FALSE;
+        app := "$SYS";
+        hini := OpenINIFile (Iname, FALSE);
+        foundI :=INIGet (hini, app, "UseTNI", useTNI0);
+        CloseINIFile (hini);
+
+        hini := OpenINIFile (Tname, TRUE);
+        foundT :=INIGet (hini, app, "UseTNI", useTNI);
+        CloseINIFile (hini);
+
+        (* If both entries missing, default to using INI.  *)
+
+        IF NOT (foundI OR foundT) THEN
+            RETURN TRUE;
+        END (*IF*);
+
+        (* If only one entry exists, use it. *)
+
+        IF foundI <> foundT THEN
+            IF foundI THEN
+                useTNI := useTNI0;
+            END (*IF*);
+            RETURN TRUE;
+        END (*IF*);
+
+        (* That leaves the case where both entries exist. *)
+
+        RETURN useTNI0 = useTNI;
+
+    END ChooseDefaultINI;
+
+(************************************************************************)
+
+PROCEDURE CommitTNIDecision (appname: ARRAY OF CHAR;  useTNI: BOOLEAN);
+
+    (* Stores the specified useTNI value in such a way that it will     *)
+    (* become the default for the next ChooseDefaultINI decision, all   *)
+    (* other factors being equal.                                       *)
+
+    VAR exists: BOOLEAN;
+        hini: HINI;
+        app: ARRAY [0..5] OF CHAR;
+        name: FilenameString;
+
+    BEGIN
+        (* Store the useTNI value in whichever of the two files exist,  *)
+        (* or both if both exist.  If neither exists, create only one.  *)
+
+        app := "$SYS";
+        Strings.Assign (appname, name);
+        Strings.Append (".TNI", name);
+        exists := Exists(name);
+        IF exists OR useTNI THEN
+            IF exists THEN
+                hini := OpenINIFile (name, TRUE);
+            ELSE
+                hini := CreateINIFile (name, TRUE);
+            END (*IF*);
+            INIPut (hini, app, "UseTNI", useTNI);
+            CloseINIFile (hini);
+        END (*IF*);
+
+        Strings.Assign (appname, name);
+        Strings.Append (".INI", name);
+        exists := Exists(name);
+        IF exists OR NOT useTNI THEN
+            IF exists THEN
+                hini := OpenINIFile (name, FALSE);
+            ELSE
+                hini := CreateINIFile (name, FALSE);
+            END (*IF*);
+            INIPut (hini, app, "UseTNI", useTNI);
+            CloseINIFile (hini);
+        END (*IF*);
+
+    END CommitTNIDecision;
 
 (************************************************************************)
 (*                   READING/WRITING A LOCAL INI FILE                   *)
@@ -141,6 +256,7 @@ PROCEDURE CreateINIFile (VAR (*IN*) filename: ARRAY OF CHAR; UseTextFile: BOOLEA
             result^.thandle := TNIData.CreateTNIFile (filename);
             failure := result^.thandle = CAST(TNIData.THandle, NIL);
         ELSE
+            CreateFile (filename);
             result^.ihandle := OS2.PrfOpenProfile (hab, filename);
             failure := result^.ihandle = 0;
             IF failure THEN

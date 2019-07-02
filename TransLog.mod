@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  Support modules for network applications                              *)
-(*  Copyright (C) 2014   Peter Moylan                                     *)
+(*  Copyright (C) 2018   Peter Moylan                                     *)
 (*                                                                        *)
 (*  This program is free software: you can redistribute it and/or modify  *)
 (*  it under the terms of the GNU General Public License as published by  *)
@@ -28,7 +28,7 @@ IMPLEMENTATION MODULE TransLog;
         (*                                                      *)
         (*  Programmer:         P. Moylan                       *)
         (*  Started:            16 March 1999                   *)
-        (*  Last edited:        25 May 2014                     *)
+        (*  Last edited:        24 November 2018                *)
         (*  Status:             OK                              *)
         (*                                                      *)
         (*     Now working on the concept of having different   *)
@@ -73,9 +73,11 @@ FROM NetDB IMPORT
     (* type *)  HostEntPtr, AddressPointerArrayPointer,
     (* proc *)  gethostbyname;
 
+FROM MiscFuncs IMPORT
+    (* proc *)  ConvertCard, StringMatch;
+
 FROM Inet2Misc IMPORT
-    (* proc *)  Swap2, Swap4, AddressToHostName, ConvertCard, StringMatch,
-                NameIsNumeric;
+    (* proc *)  Swap2, Swap4, AddressToHostName, NameIsNumeric;
 
 FROM SplitScreen IMPORT
     (* proc *)  LockScreen, UnlockScreen, WriteStringAt,
@@ -169,7 +171,7 @@ TYPE
 CONST
     Nul = CHR(0);
     PreambleSize = 29;      (* typical, but give this a re-think. *)
-    MaxLineLength = 256+PreambleSize;
+    MaxLineLength = 1024+PreambleSize;
     BlankLine = "                                                                                ";
 
 TYPE
@@ -437,7 +439,7 @@ PROCEDURE GetOurHostName (S: Socket);
     BEGIN
         size := SIZE(myaddr);
         IF NOT getsockname (S, myaddr, size) THEN
-            AddressToHostName (myaddr.in_addr.addr, OurHostname);
+            EVAL (AddressToHostName (myaddr.in_addr.addr, OurHostname));
         END (*IF*);
         IF OurHostname[0] <> '[' THEN
             Strings.FindNext ('.', OurHostname, 0, found, size);
@@ -1181,7 +1183,7 @@ PROCEDURE CreateLogID (ctx: LogContext;  code: ARRAY OF CHAR): TransactionLogID;
 
 PROCEDURE GetLogPrefix (LogID: TransactionLogID;  VAR (*OUT*) code: ARRAY OF CHAR);
 
-    (* Returns the code used as a sessin ID prefix in the log. *)
+    (* Returns the code used as a session ID prefix in the log. *)
 
     BEGIN
         Strings.Assign (LogID^.prefix, code);

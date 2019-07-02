@@ -5,14 +5,14 @@ DEFINITION MODULE GIV;
         (*              Definition of GenINI version                *)
         (*                                                          *)
         (*    Started:        26 June 2005                          *)
-        (*    Last edited:    29 August 2014                        *)
+        (*    Last edited:    16 February 2019                      *)
         (*    Status:         OK                                    *)
         (*                                                          *)
         (************************************************************)
 
 
 CONST
-    version = "1.6";
+    version = "1.7";
 
 END GIV.
 

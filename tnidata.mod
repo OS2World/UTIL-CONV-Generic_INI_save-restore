@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  Support modules for network applications                              *)
-(*  Copyright (C) 2014   Peter Moylan                                     *)
+(*  Copyright (C) 2017   Peter Moylan                                     *)
 (*                                                                        *)
 (*  This program is free software: you can redistribute it and/or modify  *)
 (*  it under the terms of the GNU General Public License as published by  *)
@@ -27,14 +27,11 @@ IMPLEMENTATION MODULE TNIData;
         (*            Looking after text-based INI data             *)
         (*                                                          *)
         (*    Started:        26 June 2005                          *)
-        (*    Last edited:    19 April 2014                         *)
+        (*    Last edited:    22 May 2017                           *)
         (*    Status:         Now working, I believe                *)
         (*                                                          *)
         (************************************************************)
 
-
-(*IMPORT STextIO;*)             (* while debugging *)
-(*FROM Debug IMPORT DebugCid, DebugText, DebugLine;*)
 
 IMPORT Strings, FileSys;
 
@@ -59,7 +56,7 @@ FROM LowLevel IMPORT
 FROM Heap IMPORT
     (* type *)  Track,
     (* proc *)  ALLOCATE, DEALLOCATE
-                <* IF TRACKTNIUSAGE THEN *>
+                <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 , StartTracking, TrackUpdate
                 <* END *>
                 ;
@@ -70,7 +67,7 @@ FROM Timer IMPORT
 FROM TaskControl IMPORT
     (* proc *)  CreateTask;
 
-FROM Inet2Misc IMPORT
+FROM MiscFuncs IMPORT
     (* proc *)  ConvertCard;
 
 (************************************************************************)
@@ -151,7 +148,7 @@ VAR
 
     appcount: CARDINAL;
 
-    <* IF TRACKTNIUSAGE THEN *>
+    <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
         (* Variables needed for logging memory usage. *)
 
         TNITrack: Track;
@@ -236,7 +233,7 @@ PROCEDURE TextToStrPtr (VAR (*IN*) text: ARRAY OF CHAR;
     BEGIN
         size := LENGTH(text);
         ALLOCATE (V.start, size);
-        <* IF TRACKTNIUSAGE THEN *>
+        <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
             TrackUpdate (TNITrack, size);
         <* END *>
         Copy (ADR(text), V.start, size);
@@ -413,7 +410,7 @@ PROCEDURE FindApp (TS: THandle;  VAR (*IN*) application: ARRAY OF CHAR;
 
         IF InsertIfMissing AND (result = NIL) THEN
             NEW (result);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, SIZE(AppRecord));
             <* END *>
             result^.FirstKey := NIL;
@@ -479,7 +476,7 @@ PROCEDURE FindKey (AP: AppPtr;  VAR (*IN*) key: ARRAY OF CHAR;
 
         IF InsertIfMissing AND (result = NIL) AND (AP <> NIL) THEN
             NEW (result);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, SIZE(KeyRecord));
             <* END *>
             TextToStrPtr (key, result^.name);
@@ -521,7 +518,7 @@ PROCEDURE SetValue (AP: AppPtr;
         amount := place^.val.length;
         IF amount > 0 THEN
             DEALLOCATE (place^.val.start, amount);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, -VAL(INTEGER,amount));
             <* END *>
             place^.val.length := 0;
@@ -589,7 +586,7 @@ PROCEDURE AppendString (VAR (*INOUT*) V: StrPtr;
             INC (newlength);
         END (*IF*);
         ALLOCATE (p, newlength);
-        <* IF TRACKTNIUSAGE THEN *>
+        <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
             TrackUpdate (TNITrack, newlength);
         <* END *>
         Copy (V.start, p, V.length);
@@ -599,7 +596,7 @@ PROCEDURE AppendString (VAR (*INOUT*) V: StrPtr;
         END (*IF*);
         IF V.length > 0 THEN
             DEALLOCATE (V.start, V.length);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, -VAL(INTEGER,V.length));
             <* END *>
         END (*IF*);
@@ -799,13 +796,13 @@ PROCEDURE Resize (VAR (*INOUT*) V: StrPtr;  newsize: CARDINAL;
             p := NIL;
         ELSE
             ALLOCATE (p, newsize);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, newsize);
             <* END *>
             Copy (V.start, p, tocopy);
         END (*IF*);
         DEALLOCATE (V.start, V.length);
-        <* IF TRACKTNIUSAGE THEN *>
+        <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
             TrackUpdate (TNITrack, -VAL(INTEGER,V.length));
         <* END *>
         V.start := p;
@@ -850,7 +847,7 @@ PROCEDURE LoadNumeric (cid: ChanId;  VAR (*INOUT*) line: ARRAY OF CHAR;
         (* out of space we'll expand the available space.               *)
 
         ALLOCATE (pval.start, len0);
-        <* IF TRACKTNIUSAGE THEN *>
+        <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
             TrackUpdate (TNITrack, len0);
         <* END *>
         pval.length := len0;
@@ -1097,7 +1094,7 @@ PROCEDURE OpenTNIFile (VAR (*IN*) fname: ARRAY OF CHAR): THandle;
                 Release (MasterLock);
             ELSE
                 NEW (TS);
-                <* IF TRACKTNIUSAGE THEN *>
+                <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                     TrackUpdate (TNITrack, SIZE(TNIStructure));
                 <* END *>
                 WITH TS^ DO
@@ -1150,7 +1147,7 @@ PROCEDURE CreateTNIFile (VAR (*IN*) fname: ARRAY OF CHAR): THandle;
         newcid := OpenNewFile (fname, FALSE);
         IF newcid <> NoSuchChannel THEN
             NEW (TS);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, SIZE(TNIStructure));
             <* END *>
             WITH TS^ DO
@@ -1980,7 +1977,7 @@ PROCEDURE CopyOf (V: StrPtr): StrPtr;
         result.length := N;
         IF N > 0 THEN
             ALLOCATE (result.start, N);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, N);
             <* END *>
             Copy (V.start, result.start, N);
@@ -2000,7 +1997,7 @@ PROCEDURE DiscardStr (VAR (*INOUT*) name: StrPtr);
     BEGIN
         IF name.length > 0 THEN
             DEALLOCATE (name.start, name.length);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, -VAL(INTEGER,name.length));
             <* END *>
             name.length := 0;
@@ -2036,13 +2033,13 @@ PROCEDURE PruneString (VAR (*INOUT*) V: StrPtr);
                 q := NIL;
             ELSE
                 ALLOCATE (q, newlength);
-                <* IF TRACKTNIUSAGE THEN *>
+                <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                     TrackUpdate (TNITrack, newlength);
                 <* END *>
                 Copy (p, q, newlength);
             END (*IF*);
             DEALLOCATE (p, length);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, length);
             <* END *>
             V.start := q;
@@ -2170,7 +2167,7 @@ PROCEDURE DisposeOfKey (VAR (*INOUT*) key: KeyPtr);
             DiscardStr (key^.val);
             DiscardStr (key^.name);
             DEALLOCATE (key, SIZE(KeyRecord));
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, -SIZE(KeyRecord));
             <* END *>
         END (*IF*);
@@ -2195,7 +2192,7 @@ PROCEDURE DisposeOfApp (VAR (*INOUT*) app: AppPtr);
             END (*IF*);
             DiscardStr (app^.name);
             DEALLOCATE (app, SIZE(AppRecord));
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, -SIZE(AppRecord));
             <* END *>
         END (*IF*);
@@ -2220,7 +2217,7 @@ PROCEDURE DiscardTNIStructure (VAR (*INOUT*) hini: THandle);
         Release (hini^.access);
         DestroyLock (hini^.access);
         DEALLOCATE (hini, SIZE(TNIStructure));
-        <* IF TRACKTNIUSAGE THEN *>
+        <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
             TrackUpdate (TNITrack, -SIZE(TNIStructure));
         <* END *>
     END DiscardTNIStructure;
@@ -2395,7 +2392,7 @@ PROCEDURE FindItem (TS: THandle;
         result.start := NIL;
         IF exists AND (result.length > 0) THEN
             ALLOCATE (result.start, result.length);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, result.length);
             <* END *>
             IF application[0] = Nul THEN
@@ -2478,7 +2475,7 @@ PROCEDURE INIGetTrusted (hini: THandle;
                 END (*IF*);
                 IF p.start <> NIL THEN
                     DEALLOCATE (p.start, p.length);
-                    <* IF TRACKTNIUSAGE THEN *>
+                    <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                         TrackUpdate (TNITrack, -VAL(INTEGER,p.length));
                     <* END *>
                 END (*IF*);
@@ -2514,7 +2511,7 @@ PROCEDURE INIGetString (hini: THandle; VAR (*IN*)   name1, name2: ARRAY OF CHAR;
         END (*IF*);
         IF p.start <> NIL THEN
             DEALLOCATE (p.start, p.length);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, -VAL(INTEGER,p.length));
             <* END *>
         END (*IF*);
@@ -2547,7 +2544,7 @@ PROCEDURE INIPutBinary (hini: THandle;  VAR (*IN*)  name1, name2: ARRAY OF CHAR;
 
         IF kp^.val.start <> NIL THEN
             DEALLOCATE (kp^.val.start, kp^.val.length);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, -VAL(INTEGER,kp^.val.length));
             <* END *>
             kp^.val.length := 0;
@@ -2557,7 +2554,7 @@ PROCEDURE INIPutBinary (hini: THandle;  VAR (*IN*)  name1, name2: ARRAY OF CHAR;
 
         IF amount <> 0 THEN
             ALLOCATE (kp^.val.start, amount);
-            <* IF TRACKTNIUSAGE THEN *>
+            <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
                 TrackUpdate (TNITrack, amount);
             <* END *>
             Copy (ADR(variable), kp^.val.start, amount);
@@ -2643,7 +2640,7 @@ BEGIN
     NextName := "00000000";
     CreateLock (MasterLock);
     CreateLock (NextNameLock);
-    <* IF TRACKTNIUSAGE THEN *>
+    <* IF DEFINED(TRACKTNIUSAGE) & TRACKTNIUSAGE THEN *>
         TNITrack := StartTracking ("TNIData");
     <* END *>
 FINALLY
