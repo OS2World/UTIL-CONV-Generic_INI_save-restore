@@ -1,0 +1,113 @@
+DEFINITION MODULE INIFileOps;
+
+        (********************************************************)
+        (*                                                      *)
+        (*                 File utilities                       *)
+        (*                                                      *)
+        (*       This is a specialised version of the FileOps   *)
+        (*       module that only includes those procedures     *)
+        (*       that are needed for INIData operations.        *)
+        (*                                                      *)
+        (*  Programmer:         P. Moylan                       *)
+        (*  Started:            10 April 2019                   *)
+        (*  Last edited:        11 April 2019                   *)
+        (*  Status:             Working                         *)
+        (*                                                      *)
+        (********************************************************)
+
+IMPORT OS2;
+
+FROM SYSTEM IMPORT
+    (* type *)  LOC;
+
+(************************************************************************)
+
+CONST
+    NoSuchChannel = MAX(CARDINAL);
+    FilenameLength = OS2.CCHMAXPATHCOMP;
+
+TYPE
+    FilenameString = ARRAY [0..FilenameLength-1] OF CHAR;
+    ChanId = OS2.HFILE;
+
+(************************************************************************)
+(*                           OPEN/CLOSE/ETC                             *)
+(************************************************************************)
+
+PROCEDURE OpenOldFile (name: ARRAY OF CHAR;  WillWrite: BOOLEAN;
+                                             binary: BOOLEAN): ChanId;
+
+    (* Opens an existing file and returns its channel ID.  If the       *)
+    (* second parameter is TRUE we are requesting write as well as read *)
+    (* access; if it's FALSE, we want read-only access.                 *)
+    (* The 'binary' parameter is ignored in the OS/2 version, but is    *)
+    (* needed in the Windows version.                                   *)
+
+PROCEDURE OpenNewFile (name: ARRAY OF CHAR;  binary: BOOLEAN): ChanId;
+
+    (* Opens a new file and returns its channel ID.                     *)
+    (* The 'binary' parameter is ignored in the OS/2 version, but is    *)
+    (* needed in the Windows version.                                   *)
+
+PROCEDURE OpenNewFile1 (name: ARRAY OF CHAR;
+                         VAR (*OUT*) duplicate: BOOLEAN): ChanId;
+
+    (* Like OpenNewFile, but returns an indication of whether the       *)
+    (* file couldn't be created because of a name duplication.          *)
+
+PROCEDURE CloseFile (cid: ChanId);
+
+    (* Closes a file. *)
+
+PROCEDURE CreateFile (name: ARRAY OF CHAR);
+
+    (* Creates an empty file.  Deletes any existing file with the same name. *)
+
+PROCEDURE DeleteFile (name: ARRAY OF CHAR);
+
+    (* Deletes a named file. *)
+
+PROCEDURE MoveFile (oldname, newname: ARRAY OF CHAR): BOOLEAN;
+
+    (* Renames a file, returns TRUE iff successful.  The source and     *)
+    (* destination files must be on the same drive.  This procedure is  *)
+    (* also a mechanism for renaming a file.                            *)
+
+PROCEDURE Exists (name: ARRAY OF CHAR): BOOLEAN;
+
+    (* Returns TRUE iff 'name' already exists. *)
+
+(************************************************************************)
+(*                              INPUT                                   *)
+(************************************************************************)
+
+PROCEDURE ReadLine (cid: ChanId;  VAR (*OUT*) data: ARRAY OF CHAR);
+
+    (* Reads a line of text from a file.  Assumption: a line ends with  *)
+    (* CRLF.  To avoid having to keep a lookahead character, I take     *)
+    (* the LF as end of line and skip the CR.  At end of file we        *)
+    (* return with data[0] = Ctrl/Z.                                    *)
+
+(************************************************************************)
+(*                              OUTPUT                                  *)
+(************************************************************************)
+
+PROCEDURE WriteRaw (cid: ChanId;  VAR (*IN*) data: ARRAY OF LOC;
+                                            amount: CARDINAL);
+
+    (* Writes a binary string to a file. *)
+
+PROCEDURE FWriteChar (cid: ChanId;  character: CHAR);
+
+    (* Writes a single character to a file. *)
+
+PROCEDURE FWriteString (cid: ChanId;  string: ARRAY OF CHAR);
+
+    (* Writes a string to a file. *)
+
+PROCEDURE FWriteLn (cid: ChanId);
+
+    (* Writes end-of-line to the file. *)
+
+END INIFileOps.
+

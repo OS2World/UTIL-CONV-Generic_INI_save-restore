@@ -1,0 +1,65 @@
+DEFINITION MODULE TNISupport;
+
+        (************************************************************)
+        (*                                                          *)
+        (*            Miscellaneous support procedures              *)
+        (*                                                          *)
+        (*    Started:        26 June 2005                          *)
+        (*    Last edited:    11 April 2019                         *)
+        (*    Status:         Working on DLL implementation         *)
+        (*                                                          *)
+        (************************************************************)
+
+
+IMPORT OS2;
+
+FROM SYSTEM IMPORT (*type*) LOC, ADDRESS;
+
+(************************************************************************)
+(*                LOCKS FOR CRITICAL SECTION PROTECTION                 *)
+(************************************************************************)
+
+TYPE Lock = OS2.HMTX;
+
+PROCEDURE CreateLock (VAR (*OUT*) L: Lock;  label: ARRAY OF CHAR);
+
+    (* Creates a new lock, or obtains access to a lock created by       *)
+    (* another process.                                                 *)
+
+PROCEDURE DestroyLock (VAR (*INOUT*) L: Lock);
+
+    (* Closes a lock.  It will be destroyed if the caller is the last   *)
+    (* thread to close it.                                              *)
+
+PROCEDURE Obtain (L: Lock);
+
+    (* Obtains lock L, waiting if necessary. *)
+
+PROCEDURE Release (L: Lock);
+
+    (* Releases lock L - which might unblock some other task. *)
+
+(************************************************************************)
+(*                        MISCELLANEOUS UTILITIES                       *)
+(************************************************************************)
+
+PROCEDURE EVAL (f: ARRAY OF LOC);
+
+    (* A do-nothing procedure - we use it for evaluating a function and *)
+    (* ignoring the result.                                             *)
+
+PROCEDURE AddOffset (A: ADDRESS;  increment: CARDINAL): ADDRESS;
+
+    (* Returns a pointer to the memory location whose physical address  *)
+    (* is Physical(A)+increment.  In the present version, it is assumed *)
+    (* that the caller will never try to run off the end of a segment.  *)
+
+PROCEDURE Copy (source, destination: ADDRESS;  bytecount: CARDINAL);
+
+    (* Copies an array of bytes from the source address to the          *)
+    (* destination address.  In the case where the two arrays overlap,  *)
+    (* the destination address should be lower in physical memory than  *)
+    (* the source address.                                              *)
+
+END TNISupport.
+

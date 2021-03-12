@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  Software to convert between INI and TNI formats.                      *)
-(*  Copyright (C) 2014   Peter Moylan                                     *)
+(*  Copyright (C) 2019   Peter Moylan                                     *)
 (*                                                                        *)
 (*  This program is free software: you can redistribute it and/or modify  *)
 (*  it under the terms of the GNU General Public License as published by  *)
@@ -28,7 +28,7 @@ IMPLEMENTATION MODULE DumpLoad;
         (*                                                      *)
         (*  Programmer:         P. Moylan                       *)
         (*  Started:            9 November 2008                 *)
-        (*  Last edited:        3 July 2012                     *)
+        (*  Last edited:        13 April 2019                   *)
         (*  Status:             Working                         *)
         (*                                                      *)
         (********************************************************)
@@ -276,7 +276,7 @@ PROCEDURE LoadAllData (name: FilenameString;  FromINI: BOOLEAN): BOOLEAN;
         STextIO.WriteString (INIFileName);
         STextIO.WriteLn;
 
-        hini := OpenINIFile (INIFileName, NOT FromINI);
+        hini := OpenINIFile (INIFileName);
         success := INIValid (hini);
         IF success THEN
             LoadAllApps (hini);
@@ -432,12 +432,12 @@ PROCEDURE OpenOutputFile (VAR (*INOUT*) outname: ARRAY OF CHAR;
             Strings.Append (".BAK", BAKname);
             DeleteFile (BAKname);
             IF MoveFile (filename, BAKname) THEN
-                hini := CreateINIFile (filename, UseTNI);
+                hini := CreateINIFile (filename);
             ELSE
                 hini := NIL;
             END (*IF*);
         ELSE
-            hini := CreateINIFile (filename, UseTNI);
+            hini := CreateINIFile (filename);
         END (*IF*);
         RETURN hini;
     END OpenOutputFile;

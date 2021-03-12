@@ -14,7 +14,7 @@ load them from that human-readable form. It also includes some
 Rexx scripts (in the TNItools subdirectory) to read and write INI and TNI data. It is
 distributed as freeware, and licensed under the GNU General Public
 License. You may distribute it with your own applications.
-This documentation is for version 1.7.
+This documentation is for version 1.9.
 :p.
 :hp2.Disclaimer of Warranty:ehp2.
 
@@ -41,6 +41,20 @@ To obtain the source code, look for a file GenINIsrc_N.N.zip, where N.N is the v
 Information about other software on this site may be found at
 http&colon.&slash.&slash.www.pmoylan.org/pages/os2/software.html.
 
+
+.***********************************
+.*   PREREQUISITES
+.***********************************
+
+:h1 id=prerequisites.Prerequisites
+
+:hp2.Prerequisites:ehp2.
+
+:p.This software assumes that both INIDATA.DLL and XDS230M.DLL are in your
+LIBPATH. If, when trying to run LoadINI.exe or DumpINI.exe, you get a message like
+"The system cannot find the file XDS230M", you must install INIData,
+version 1.0 or later. INIData can be found at the same web or FTP site as where
+you found the GenINI zip file.
 
 .***********************************
 .*   WHAT IS IT FOR?
@@ -79,7 +93,7 @@ produce the edited INI file.
 :p.I have now introduced the option, in several of my programs,
 of having a choice between using an INI or a TNI file. (The
 decision as to which one will be used is explained in the
-:link reftype=hd refid=selectionrules.selection rules:elink.)
+:link reftype=hd refid=selectionrules.selection rules:elink..)
 This is because some people are having
 problems with the reliability of the INI subsystem within the
 operating system code. It used to work well, but increasingly
@@ -261,7 +275,7 @@ any Rexx code that calls them.
 rules described in
 :link reftype=hd refid=selectionrules.the following section:elink..
 
-:dt.INIget.cmd
+:dt.INI_val.cmd
 :dd.This fetches a value from an INI or TNI file. It also has options
 to fetch a list of all applications, or all keys for a given application.
 
@@ -273,6 +287,11 @@ to fetch a list of all applications, or all keys for a given application.
 to delete all keys or all applications.
 
 :edl.
+
+:note.In an earlier version of this software, INI_val.cmd was called INIget.cmd.
+It had to be renamed because of a name conflict with other software. If you
+have existing scripts that call INIget, you will have to update them to call
+INI_val instead.
 
 .***********************************
 .*   CHECKING THE VERSION
@@ -399,6 +418,9 @@ extra Nul character, so that the sequence normally finishes with two Nul
 characters. Empty strings are not permitted in this format; but an
 empty "string of strings" is possible, in which case the value is a
 single Nul.
+
+:p.(If you do need an empty string with this format, a good compromise is
+to make it a nul-terminated empty string, written as ''0.)
 
 :p.In the TNI file, a string of strings is written as an extra level
 of nesting, as shown in the following example.
